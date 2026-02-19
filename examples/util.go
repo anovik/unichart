@@ -2,12 +2,12 @@ package examples
 
 import (
 	"image"
+	"image/draw"
 	"image/png"
 
 	"log"
 	"os"
 
-	"github.com/disintegration/imaging"
 	"github.com/unidoc/unipdf/v4/model"
 	"github.com/unidoc/unipdf/v4/render"
 )
@@ -46,7 +46,13 @@ func RenderPDFToImage(filename string) {
 
 func cropImage(imagePath string) {
 	// Open the input image
-	img, err := imaging.Open(imagePath)
+	file, err := os.Open(imagePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	img, err := png.Decode(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +61,10 @@ func cropImage(imagePath string) {
 	boundingBox := findBoundingBox(img)
 
 	// Crop the image using the bounding box
-	croppedImg := imaging.Crop(img, boundingBox)
+	// Create a new RGBA image with the cropped dimensions
+	croppedImg := image.NewRGBA(image.Rect(0, 0, boundingBox.Dx(), boundingBox.Dy()))
+	// Draw the cropped section onto the new image
+	draw.Draw(croppedImg, croppedImg.Bounds(), img, boundingBox.Min, draw.Src)
 
 	// Save the cropped image
 	outFile, err := os.Create(imagePath)
